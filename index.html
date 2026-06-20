@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HACKATHON - Medusa 2.0</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      /* Theme tuned to the MEDUSA 2.0 poster */
+      --bg-0: #0b1213;
+      --bg-1: #0f1b1c;
+      --ink: rgba(255, 255, 255, 0.92);
+      --muted: rgba(255, 255, 255, 0.62);
+      --accent: #47c8b3;     /* teal-green */
+      --accent-2: #2ea08f;   /* deeper teal */
+      --panel-bg: rgba(6, 14, 14, 0.62);
+      --panel-brd: rgba(71, 200, 179, 0.22);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      background: radial-gradient(1200px 700px at 50% 35%, rgba(71, 200, 179, 0.08), transparent 60%),
+                  linear-gradient(180deg, var(--bg-1), var(--bg-0) 70%);
+      color: var(--ink);
+      font-family: 'Rajdhani', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    /* Matrix canvas behind everything */
+    #matrix {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      opacity: 0.22;
+      pointer-events: none;
+      mix-blend-mode: screen;
+    }
+
+    /* Subtle circuitry + vignette overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(900px 520px at 50% 45%, rgba(0,0,0,0), rgba(0,0,0,0.55) 75%),
+        repeating-linear-gradient(90deg, rgba(255,255,255,0.035) 0 1px, transparent 1px 140px),
+        repeating-linear-gradient(0deg, rgba(255,255,255,0.025) 0 1px, transparent 1px 110px);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .grid-bg { display: none; }
+
+    .container {
+      position: relative;
+      z-index: 5;
+      text-align: center;
+      padding: 2rem;
+      max-width: 900px;
+      width: 100%;
+    }
+
+    /* Header */
+    .header {
+      margin-bottom: 2rem;
+    }
+
+    .hackathon-badge {
+      display: inline-block;
+      border: 1px solid rgba(255,255,255,0.18);
+      color: rgba(255,255,255,0.78);
+      padding: 0.45rem 1.1rem;
+      font-size: 0.85rem;
+      letter-spacing: 0.3em;
+      margin-bottom: 1rem;
+      border-radius: 999px;
+      backdrop-filter: blur(10px);
+      background: rgba(0,0,0,0.12);
+      font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+
+    .event-logo {
+      display: block;
+      width: min(460px, 88vw);
+      height: auto;
+      margin: 0 auto 0.75rem;
+    }
+
+    .subtitle {
+      color: rgba(255,255,255,0.72);
+      font-size: 1rem;
+      letter-spacing: 0.28em;
+      margin-top: 0.5rem;
+      font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+
+    /* Removed medusa icon block per request */
+
+    /* Countdown panel */
+    .countdown-panel {
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-brd);
+      border-radius: 22px;
+      padding: 2rem;
+      position: relative;
+      backdrop-filter: blur(10px);
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,0.04) inset,
+        0 18px 70px rgba(0,0,0,0.45);
+    }
+
+    /* Curved corner accents (no bracket corners) */
+    .countdown-panel::before {
+      content: '';
+      position: absolute;
+      inset: -1px;
+      border-radius: inherit;
+      pointer-events: none;
+      background:
+        radial-gradient(28px 28px at 0% 0%, rgba(71, 200, 179, 0.55), transparent 65%),
+        radial-gradient(28px 28px at 100% 0%, rgba(71, 200, 179, 0.35), transparent 65%),
+        radial-gradient(28px 28px at 0% 100%, rgba(71, 200, 179, 0.35), transparent 65%),
+        radial-gradient(28px 28px at 100% 100%, rgba(71, 200, 179, 0.55), transparent 65%);
+      opacity: 0.65;
+      mix-blend-mode: screen;
+    }
+
+    .event-name {
+      font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 1rem;
+      color: rgba(255,255,255,0.82);
+      letter-spacing: 0.2em;
+      margin-bottom: 1.5rem;
+      text-transform: uppercase;
+    }
+
+    .countdown {
+      display: flex;
+      justify-content: center;
+      gap: clamp(0.5rem, 3vw, 1.5rem);
+      flex-wrap: wrap;
+    }
+
+    .time-block {
+      min-width: 90px;
+    }
+
+    .time-value {
+      font-family: 'Rajdhani', system-ui, sans-serif;
+      font-size: clamp(3rem, 10vw, 5rem);
+      font-weight: 700;
+      line-height: 1;
+      color: rgba(255,255,255,0.92);
+      text-shadow:
+        0 0 18px rgba(71, 200, 179, 0.18);
+    }
+
+    .time-block:nth-child(2) .time-value,
+    .time-block:nth-child(3) .time-value,
+    .time-block:nth-child(4) .time-value {
+      color: rgba(255,255,255,0.92);
+    }
+
+    .time-label {
+      font-size: 0.7rem;
+      letter-spacing: 0.25em;
+      color: rgba(255,255,255,0.55);
+      margin-top: 0.5rem;
+      text-transform: uppercase;
+    }
+
+    .separator {
+      font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: clamp(2rem, 6vw, 3.5rem);
+      color: rgba(255,255,255,0.2);
+      align-self: flex-start;
+      padding-top: 0.3rem;
+    }
+
+    /* Status messages */
+    .status {
+      margin-top: 1.5rem;
+      font-size: 0.85rem;
+      letter-spacing: 0.15em;
+      color: rgba(71, 200, 179, 0.9);
+    }
+
+    .status.ended {
+      color: rgba(255,255,255,0.92);
+      font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 1.2rem;
+      text-shadow: 0 0 24px rgba(71, 200, 179, 0.25);
+    }
+  </style>
+</head>
+<body>
+  <div class="grid-bg"></div>
+  <canvas id="matrix" aria-hidden="true"></canvas>
+
+  <div class="container">
+    <header class="header">
+      <div class="hackathon-badge">INTER UNIVERSITY CTF COMPETITION</div>
+      <img src="Layer 4.png" alt="MEDUSA 2.0" class="event-logo" id="eventLogo" />
+      <p class="subtitle">COUNTDOWN</p>
+    </header>
+
+    <div class="countdown-panel">
+      <div class="event-name" id="eventName">HACKATHON 2026</div>
+
+      <div class="countdown" id="countdown">
+        <div class="time-block">
+          <div class="time-value" id="hours">00</div>
+          <div class="time-label">Hours</div>
+        </div>
+        <span class="separator">:</span>
+        <div class="time-block">
+          <div class="time-value" id="minutes">00</div>
+          <div class="time-label">Minutes</div>
+        </div>
+        <span class="separator">:</span>
+        <div class="time-block">
+          <div class="time-value" id="seconds">00</div>
+          <div class="time-label">Seconds</div>
+        </div>
+      </div>
+
+      <div class="status" id="status">INITIALIZING TEMPORAL SYNC...</div>
+    </div>
+  </div>
+
+  <script>
+    // ═══════════════════════════════════════════════════════════
+    //  CONFIG — Update these values for your hackathon
+    // ═══════════════════════════════════════════════════════════
+    const CONFIG = {
+      // End date/time (local timezone). Format: 'YYYY-MM-DDTHH:MM:SS'
+      endTime: '2026-06-21T15:00:00',
+
+      // Logo image path (relative to index.html)
+      logoPath: 'Layer 4.png',
+
+      // Display name shown on the countdown panel
+      eventName: 'INTER UNIVERSITY CTF COMPETITION',
+
+      // Messages
+      statusActive: 'TIME REMAINING UNTIL LAUNCH',
+      statusEnded: '⚡ HACKATHON IS LIVE — GO BUILD ⚡',
+      statusEndedAlt: '⏱ EVENT HAS CONCLUDED — GG WP',
+    };
+    // ═══════════════════════════════════════════════════════════
+
+    const els = {
+      hours: document.getElementById('hours'),
+      minutes: document.getElementById('minutes'),
+      seconds: document.getElementById('seconds'),
+      status: document.getElementById('status'),
+      eventName: document.getElementById('eventName'),
+      eventLogo: document.getElementById('eventLogo'),
+      countdown: document.getElementById('countdown'),
+    };
+
+    els.eventName.textContent = CONFIG.eventName;
+    if (CONFIG.logoPath) els.eventLogo.src = CONFIG.logoPath;
+
+    function pad(n) {
+      return String(n).padStart(2, '0');
+    }
+
+    function updateCountdown() {
+      const now = Date.now();
+      const end = new Date(CONFIG.endTime).getTime();
+      const diff = end - now;
+
+      if (isNaN(end)) {
+        els.status.textContent = 'ERROR: INVALID END TIME IN CONFIG';
+        return;
+      }
+
+      if (diff <= 0) {
+        els.hours.textContent = '00';
+        els.minutes.textContent = '00';
+        els.seconds.textContent = '00';
+        els.status.textContent = CONFIG.statusEnded;
+        els.status.classList.add('ended');
+        return;
+      }
+
+      // No days UI: roll days into total hours so users still see full remaining time.
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+      els.hours.textContent = String(hours).padStart(2, '0');
+      els.minutes.textContent = pad(minutes);
+      els.seconds.textContent = pad(seconds);
+      els.status.textContent = CONFIG.statusActive;
+    }
+
+    updateCountdown();
+    setInterval(updateCountdown, 1000);
+
+    // Matrix background (subtle). Respects reduced motion.
+    (function startMatrix() {
+      const prefersReduced = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+      if (prefersReduced) return;
+
+      const canvas = document.getElementById('matrix');
+      const ctx = canvas.getContext('2d', { alpha: true });
+      if (!ctx) return;
+
+      const glyphs = '01';
+      let w = 0, h = 0, cols = 0;
+      let drops = [];
+
+      function resize() {
+        const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+        w = Math.floor(window.innerWidth);
+        h = Math.floor(window.innerHeight);
+        canvas.width = Math.floor(w * dpr);
+        canvas.height = Math.floor(h * dpr);
+        canvas.style.width = w + 'px';
+        canvas.style.height = h + 'px';
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+        const fontSize = 16;
+        cols = Math.floor(w / fontSize);
+        drops = Array.from({ length: cols }, () => Math.floor(Math.random() * h / fontSize));
+        ctx.font = `600 ${fontSize}px JetBrains Mono, ui-monospace, monospace`;
+      }
+
+      function tick() {
+        // fade trail
+        ctx.fillStyle = 'rgba(11, 18, 19, 0.08)';
+        ctx.fillRect(0, 0, w, h);
+
+        ctx.fillStyle = 'rgba(71, 200, 179, 0.55)';
+        const fontSize = 16;
+
+        for (let i = 0; i < drops.length; i++) {
+          const text = glyphs[(Math.random() * glyphs.length) | 0];
+          const x = i * fontSize;
+          const y = drops[i] * fontSize;
+          ctx.fillText(text, x, y);
+
+          if (y > h && Math.random() > 0.975) drops[i] = 0;
+          drops[i] += 1;
+        }
+        requestAnimationFrame(tick);
+      }
+
+      resize();
+      window.addEventListener('resize', resize, { passive: true });
+      requestAnimationFrame(tick);
+    })();
+  </script>
+</body>
+</html>
